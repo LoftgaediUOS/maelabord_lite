@@ -426,7 +426,17 @@ def create_compact_dashboard(all_data):
 
         ax.text(
             x_ax, y_ax - 0.01,
-            f'Hæsta gildi: {highest_station} - {int(round(highest_value))}',
+            'Hæsta gildi:',
+            transform=ax.transAxes,
+            fontsize=11,
+            ha='left',
+            va='top',
+            color='black',
+            clip_on=False,
+        )
+        ax.text(
+            x_ax, y_ax - 0.06,
+            f'{highest_station} - {int(round(highest_value))}',
             transform=ax.transAxes,
             fontsize=11,
             ha='left',
@@ -435,10 +445,20 @@ def create_compact_dashboard(all_data):
             clip_on=False,
         )
 
-        timestamp_str = datetime.now(ICELAND_TZ).strftime('Seinast uppfært: %H:%M %d.%m.%y')
+        now_str = datetime.now(ICELAND_TZ).strftime('%H:%M %d.%m.%y')
         ax.text(
-            x_ax, y_ax - 0.06,
-            timestamp_str,
+            x_ax, y_ax - 0.13,
+            'Seinast uppfært:',
+            transform=ax.transAxes,
+            fontsize=11,
+            ha='left',
+            va='top',
+            color='gray',
+            clip_on=False,
+        )
+        ax.text(
+            x_ax, y_ax - 0.18,
+            now_str,
             transform=ax.transAxes,
             fontsize=11,
             ha='left',
