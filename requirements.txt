@@ -3,3 +3,4 @@ streamlit-autorefresh
 requests
 pandas
 matplotlib
+tzdata
