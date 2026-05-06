@@ -260,7 +260,7 @@ def load_all_data():
 
 def create_compact_dashboard(all_data):
     """Create a 3×2 grid of pollutant charts and return the matplotlib Figure."""
-    fig, axes = plt.subplots(3, 2, figsize=(18, 16), dpi=150)
+    fig, axes = plt.subplots(6, 1, figsize=(18, 54), dpi=150)
     axes = axes.flatten()
 
     for idx, pollutant in enumerate(POLLUTANTS):
@@ -363,13 +363,13 @@ def create_compact_dashboard(all_data):
 
         unit           = pollutant_data[0][1]['unit'].iloc[0]
         formatted_unit = format_unit(unit)
-        ax.set_xlabel('', fontsize=9)
-        ax.set_ylabel(formatted_unit, fontsize=9)
-        ax.set_title(format_pollutant_name(pollutant), fontsize=16, fontweight='bold', pad=10)
+        ax.set_xlabel('', fontsize=12)
+        ax.set_ylabel(formatted_unit, fontsize=12)
+        ax.set_title(format_pollutant_name(pollutant), fontsize=20, fontweight='bold', pad=12)
         ax.axhline(y=0, color='black', linewidth=1.5, alpha=0.6, zorder=1)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d. %H:%M'))
 
-        legend = ax.legend(handles, labels, fontsize=6, loc='best', ncol=2)
+        legend = ax.legend(handles, labels, fontsize=10, loc='best', ncol=3)
         for text, legend_label in zip(legend.get_texts(), labels):
             for sid in STATIONS:
                 sname = STATION_NAMES.get(sid, sid)
@@ -385,8 +385,8 @@ def create_compact_dashboard(all_data):
                     break
 
         ax.grid(True, alpha=0.3)
-        ax.tick_params(axis='x', rotation=45, labelsize=7)
-        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', rotation=45, labelsize=11)
+        ax.tick_params(axis='y', labelsize=11)
 
     plt.tight_layout()
     return fig
