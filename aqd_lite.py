@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import io
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from streamlit_autorefresh import st_autorefresh
+
+ICELAND_TZ = ZoneInfo('Atlantic/Reykjavik')
 
 # ── Page configuration ─────────────────────────────────────────────────────────
 st.set_page_config(
@@ -35,7 +38,7 @@ STATION_DATA = [
     {'id': 'STA-IS0037A', 'name': 'Dalsmári',             'PM10': True,  'PM2.5': True,  'PM1': True,  'NO2': True,  'H2S': True,  'SO2': True},
     {'id': 'STA-IS0046A', 'name': 'Norðurhella',           'PM10': True,  'PM2.5': True,  'PM1': False, 'NO2': True,  'H2S': True,  'SO2': True},
     {'id': 'STA-IS0064A', 'name': 'Garðaholt',             'PM10': True,  'PM2.5': True,  'PM1': True,  'NO2': False, 'H2S': True,  'SO2': True},
-    {'id': 'STA-IS0063A', 'name': 'Hörðuvallaskóli',       'PM10': True,  'PM2.5': True,  'PM1': True,  'NO2': True,  'H2S': True,  'SO2': True},
+    {'id': 'STA-IS0063A', 'name': 'Hörðuvallask.',       'PM10': True,  'PM2.5': True,  'PM1': True,  'NO2': True,  'H2S': True,  'SO2': True},
     {'id': 'STA-IS0044A', 'name': 'Grindavík',             'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': False},
     {'id': 'STA-IS0033A', 'name': 'Reykjahlíð',            'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': False},
     {'id': 'STA-IS0034A', 'name': 'Vogar, Mývatn',         'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': False},
@@ -58,11 +61,11 @@ STATION_DATA = [
     {'id': 'STA-IS0067A', 'name': 'Ásbrú',                 'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
     {'id': 'STA-IS0068A', 'name': 'Sandgerði',             'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
     {'id': 'STA-IS0069A', 'name': 'Hafnir',                'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
-    {'id': 'STA-IS0070A', 'name': 'Keflavík Vatnaveröld',  'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
-    {'id': 'STA-IS0071A', 'name': 'Stapaskóli',            'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
+    {'id': 'STA-IS0070A', 'name': 'Keflavík',  'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
+    {'id': 'STA-IS0071A', 'name': 'Njarðvík',            'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
     {'id': 'STA-IS0072A', 'name': 'Vogar',                 'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
     {'id': 'STA-IS0073A', 'name': 'Selfoss',               'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
-    {'id': 'STA-IS0074A', 'name': 'Kirkjubæjarklaustur',   'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
+    {'id': 'STA-IS0074A', 'name': 'Kirkjubæjarkl.',   'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': True,  'SO2': True},
     {'id': 'STA-IS0027A', 'name': 'Hjallaleyra',           'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': False, 'SO2': True},
     {'id': 'STA-IS0028A', 'name': 'Ljósá',                 'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': False, 'SO2': True},
     {'id': 'STA-IS0029A', 'name': 'Hólmar',                'PM10': False, 'PM2.5': False, 'PM1': False, 'NO2': False, 'H2S': False, 'SO2': True},
@@ -263,6 +266,8 @@ def create_compact_dashboard(all_data):
     fig, axes = plt.subplots(6, 1, figsize=(18, 54), dpi=150)
     axes = axes.flatten()
 
+    highest_per_ax = {}  # stores (highest_station, highest_value) per axis index
+
     for idx, pollutant in enumerate(POLLUTANTS):
         ax = axes[idx]
 
@@ -284,18 +289,26 @@ def create_compact_dashboard(all_data):
             continue
 
         station_plot_data = []
-        max_value = 0
-        min_value = 0
+        max_value       = 0
+        min_value       = 0
+        highest_station = None
+        highest_value   = -float('inf')
 
         for station_id, df in pollutant_data:
             station_name = df['station_name'].iloc[0]
             df_sorted = df.sort_values('datetime')
 
             if not df_sorted['value'].empty:
-                max_value      = max(max_value, df_sorted['value'].max())
-                min_value      = min(min_value, df_sorted['value'].min())
-                latest_value   = df_sorted['value'].iloc[-1]
-                latest_ts      = df_sorted['datetime'].iloc[-1]
+                station_max  = df_sorted['value'].max()
+                max_value    = max(max_value, station_max)
+                min_value    = min(min_value, df_sorted['value'].min())
+                latest_value = df_sorted['value'].iloc[-1]
+                latest_ts    = df_sorted['datetime'].iloc[-1]
+
+                # Track which station holds the 24-hour maximum
+                if station_max > highest_value:
+                    highest_value   = station_max
+                    highest_station = station_name
             else:
                 latest_value = -float('inf')
                 latest_ts    = None
@@ -307,6 +320,9 @@ def create_compact_dashboard(all_data):
                 'latest_value': latest_value,
                 'latest_ts':    latest_ts,
             })
+
+        # Store for use after tight_layout (when legend bbox is available)
+        highest_per_ax[idx] = (highest_station, highest_value)
 
         station_plot_data.sort(key=lambda x: x['latest_value'], reverse=True)
 
@@ -369,7 +385,8 @@ def create_compact_dashboard(all_data):
         ax.axhline(y=0, color='black', linewidth=1.5, alpha=0.6, zorder=1)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d. %H:%M'))
 
-        legend = ax.legend(handles, labels, fontsize=10, loc='best', ncol=3)
+        legend = ax.legend(handles, labels, fontsize=10, loc='upper left',
+                           bbox_to_anchor=(1.01, 1), borderaxespad=0, ncol=1)
         for text, legend_label in zip(legend.get_texts(), labels):
             for sid in STATIONS:
                 sname = STATION_NAMES.get(sid, sid)
@@ -388,7 +405,48 @@ def create_compact_dashboard(all_data):
         ax.tick_params(axis='x', rotation=45, labelsize=11)
         ax.tick_params(axis='y', labelsize=11)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 0.83, 1])
+
+    # Render the canvas so legend bounding boxes are available
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    for ax_idx, ax in enumerate(axes):
+        legend = ax.get_legend()
+        if legend is None or ax_idx not in highest_per_ax:
+            continue
+        highest_station, highest_value = highest_per_ax[ax_idx]
+        if highest_station is None:
+            continue
+
+        # Convert legend bottom-left corner from display coords to axes coords
+        legend_bbox  = legend.get_window_extent(renderer)
+        inv          = ax.transAxes.inverted()
+        x_ax, y_ax   = inv.transform((legend_bbox.x0, legend_bbox.y0))
+
+        ax.text(
+            x_ax, y_ax - 0.01,
+            f'Hæsta gildi: {highest_station} - {int(round(highest_value))}',
+            transform=ax.transAxes,
+            fontsize=11,
+            ha='left',
+            va='top',
+            color='black',
+            clip_on=False,
+        )
+
+        timestamp_str = datetime.now(ICELAND_TZ).strftime('Seinast uppfært: %H:%M %d.%m.%y')
+        ax.text(
+            x_ax, y_ax - 0.06,
+            timestamp_str,
+            transform=ax.transAxes,
+            fontsize=11,
+            ha='left',
+            va='top',
+            color='gray',
+            clip_on=False,
+        )
+
     return fig
 
 
